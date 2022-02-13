@@ -1,0 +1,5 @@
+/target
+/files
+/dist
+*.db
+.env
