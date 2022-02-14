@@ -17,6 +17,8 @@ pub async fn static_handler(uri: Uri) -> impl IntoResponse {
 struct Asset;
 pub struct StaticFile<T>(pub T);
 
+static CACHE_CONTROL_TIME: &str = "max-age=604800";
+
 impl<T> IntoResponse for StaticFile<T>
 where
     T: Into<String>,
@@ -29,6 +31,7 @@ where
                 let mime = mime_guess::from_path(path).first_or_octet_stream();
                 Response::builder()
                     .header(header::CONTENT_TYPE, mime.as_ref())
+                    .header(header::CACHE_CONTROL, CACHE_CONTROL_TIME)
                     .body(body)
                     .unwrap()
             }
@@ -38,6 +41,7 @@ where
                 let body = boxed(Full::from(data));
                 Response::builder()
                     .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
+                    .header(header::CACHE_CONTROL, CACHE_CONTROL_TIME)
                     .body(body)
                     .unwrap()
             }
