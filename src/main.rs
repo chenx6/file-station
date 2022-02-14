@@ -1,11 +1,17 @@
-use std::net::SocketAddr;
+use std::{
+    env,
+    fs::{canonicalize, create_dir, write},
+    net::SocketAddr,
+    path::PathBuf,
+};
 
 use axum::{
     handler::Handler,
     routing::{get, patch, post},
     AddExtensionLayer, Router,
 };
-use sqlx::SqlitePool;
+use lazy_static::lazy_static;
+use sqlx::{migrate, SqlitePool};
 use tower_http::{
     compression::CompressionLayer,
     cors::{any, CorsLayer},
@@ -23,9 +29,35 @@ use file::{
 };
 use user::{authorize, register, reset_password};
 
+lazy_static! {
+    pub static ref FOLDER: PathBuf = {
+        let path = env::var("FS_FOLDER").unwrap_or(String::from("./files/"));
+        let path = PathBuf::from(path);
+        if !path.exists() {
+            create_dir(&path).unwrap();
+        }
+        canonicalize(path).unwrap()
+    };
+}
+
+/// Perform migration if database is not exist
+pub async fn migrate(db_url: &str) {
+    if !PathBuf::from(db_url).exists() {
+        write(db_url, "").unwrap();
+        let pool = SqlitePool::connect(&format!("sqlite://{}", db_url))
+            .await
+            .unwrap();
+        migrate!().run(&pool).await.unwrap();
+    }
+}
+
 #[tokio::main]
 async fn main() {
-    let pool = SqlitePool::connect("sqlite://database.db").await.unwrap();
+    let db_url = env::var("FS_DATABASE").unwrap_or("database.db".to_string());
+    migrate(&db_url).await;
+    let pool = SqlitePool::connect(&format!("sqlite://{}", db_url))
+        .await
+        .unwrap();
     let app = Router::new()
         .nest(
             "/api/v1",

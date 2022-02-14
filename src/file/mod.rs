@@ -3,25 +3,19 @@ pub mod folder;
 pub mod share;
 
 use std::fs::{canonicalize, metadata, read_dir};
+use std::io;
 use std::path::PathBuf;
 use std::time::SystemTime;
-use std::{env, io};
 
 use axum::extract::multipart::MultipartError;
 use axum::extract::{FromRequest, Query, RequestParts};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::{async_trait, Json};
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-lazy_static! {
-    pub static ref FOLDER: PathBuf = {
-        let path = env::var("CFS_FOLDER").unwrap_or(String::from("./files/"));
-        canonicalize(PathBuf::from(path)).unwrap()
-    };
-}
+use crate::FOLDER;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
