@@ -1,6 +1,6 @@
 use axum::{
     body::{boxed, Full},
-    http::{header, StatusCode, Uri},
+    http::{header, Uri},
     response::{IntoResponse, Response},
 };
 use rust_embed::RustEmbed;
@@ -8,10 +8,7 @@ use rust_embed::RustEmbed;
 /// Send static file
 /// TODO
 pub async fn static_handler(uri: Uri) -> impl IntoResponse {
-    let mut path = uri.path().trim_start_matches("/").to_string();
-    if path.starts_with("assets/") {
-        path = path.replace("assets/", "");
-    }
+    let path = uri.path().trim_start_matches("/").to_string();
     StaticFile(path)
 }
 
@@ -35,10 +32,15 @@ where
                     .body(body)
                     .unwrap()
             }
-            None => Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body(boxed(Full::from("404")))
-                .unwrap(),
+            None => {
+                // Returning index as default because we are bundling Single-page application
+                let data = Asset::get("index.html").unwrap().data;
+                let body = boxed(Full::from(data));
+                Response::builder()
+                    .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
+                    .body(body)
+                    .unwrap()
+            }
         }
     }
 }
