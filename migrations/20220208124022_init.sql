@@ -2,7 +2,7 @@
 CREATE TABLE user (
     id INTEGER PRIMARY KEY,
     username VARCHAR(32) UNIQUE,
-    `password` VARCHAR(32)
+    `password` VARCHAR
 );
 
 CREATE TABLE share (
