@@ -1,7 +1,4 @@
-use std::{
-    fs::{read, remove_file, remove_dir, rename, write},
-    path::PathBuf,
-};
+use std::path::PathBuf;
 
 use axum::{
     body::Bytes,
@@ -9,6 +6,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use tokio::fs::{read, remove_dir, remove_file, rename, write};
 
 use crate::{
     file::{concat_path_str, is_traversal, File, FileError, Path, QueryArgs, RenameArgs, FOLDER},
@@ -20,15 +18,15 @@ pub async fn get_file(Path(path): Path, _: Claim) -> Result<Vec<u8>, FileError> 
     if !path.is_file() {
         return Err(FileError::PathError);
     }
-    Ok(read(&path)?)
+    Ok(read(&path).await?)
 }
 
 /// Delete file
 pub async fn delete_file(Path(path): Path, _: Claim) -> Result<StatusCode, FileError> {
     if path.is_dir() {
-        remove_dir(path)?;
+        remove_dir(path).await?;
     } else {
-        remove_file(path)?;
+        remove_file(path).await?;
     }
     Ok(StatusCode::OK)
 }
@@ -43,7 +41,7 @@ pub async fn rename_file(
     if is_traversal(&from) || is_traversal(&to) {
         return Err(FileError::PathError);
     }
-    rename(from, to)?;
+    rename(from, to).await?;
     Ok(StatusCode::OK)
 }
 
@@ -81,7 +79,7 @@ pub async fn upload_file(mut multipart: Multipart, _: Claim) -> Result<StatusCod
     if path.is_file() {
         return Err(FileError::PathError);
     }
-    write(path, data)?;
+    write(path, data).await?;
     Ok(StatusCode::OK)
 }
 
