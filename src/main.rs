@@ -92,7 +92,10 @@ async fn main() {
         )
         .layer(CompressionLayer::new().br(true))
         .layer(AddExtensionLayer::new(pool));
-    let addr = SocketAddr::from(([127, 0, 0, 1], 5000)); // TODO Accept user input address
+    let addr: SocketAddr = env::var("FS_LISTEN")
+        .unwrap_or("127.0.0.1:5000".to_string())
+        .parse()
+        .unwrap();
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await
