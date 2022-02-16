@@ -16,9 +16,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{FromRow, SqlitePool};
 
-static KEY: &str = "yurayuraringdong~";
-
 lazy_static! {
+    static ref KEY: String = (0..32).map(|_| rand::random::<char>()).collect();
     static ref CAN_REGISTER: bool = env::var("FS_REGISTER").unwrap_or("TRUE".to_string()) == "TRUE";
     static ref ENCRYPT_KEY: EncodingKey = EncodingKey::from_secret(KEY.as_bytes());
     static ref DECRYPT_KEY: DecodingKey = DecodingKey::from_secret(KEY.as_bytes());
