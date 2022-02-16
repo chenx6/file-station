@@ -9,6 +9,16 @@
 - Share files
 - Preview audio/video/image/markdown
 
+## Screenshot
+
+<details>
+    <summary>Click to show</summary>
+    <img src="./docs/Screenshot_main_ui.png" alt="main_ui">
+    <img src="./docs/Screenshot_image_preview.png" alt="image_preview">
+    <img src="./docs/Screenshot_markdown_preview.png">
+    <img src="./docs/Screenshot_video_preview.png">
+</details>
+
 ## Quick start
 
 ### Download 
