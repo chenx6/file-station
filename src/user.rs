@@ -23,7 +23,8 @@ lazy_static! {
     static ref DECRYPT_KEY: DecodingKey = DecodingKey::from_secret(KEY.as_bytes());
     static ref DEFAULT_HEADER: Header = Header::default();
     static ref VALIDATION: Validation = Validation::default();
-    static ref SALT: SaltString = SaltString::new("AAAABBBBCCCCDDDD").unwrap();
+    static ref SALT: SaltString =
+        SaltString::new(&env::var("FS_SALT").unwrap_or("AAAABBBBCCCCDDDD".to_string())).unwrap();
 }
 
 #[derive(Serialize)]

@@ -25,6 +25,7 @@ Add environment variable below to custom ui
 |FS_DATABASE|./database.db|Database position|
 |FS_LISTEN|127.0.0.1:5000|Listen host and port|
 |FS_REGISTER|TRUE|Can register or not ("TRUE" or "FALSE")|
+|FS_SALT||Used for password hash|
 
 ### Run
 
