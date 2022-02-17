@@ -14,7 +14,7 @@ serde_json = "1.0.78"
 jsonwebtoken = "8.0.1"
 lazy_static = "1.4.0"
 thiserror = "1.0"
-sqlx = { version = "0.5", features = [ "runtime-tokio-native-tls" , "sqlite" ] }
+sqlx = { version = "0.5", features = [ "runtime-tokio-rustls" , "sqlite" ] }
 rust-embed = "6.3.0"
 mime_guess = "2.0.3"
 rand = "0.8.4"
