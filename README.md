@@ -27,7 +27,7 @@ You can get binary from [HERE](https://github.com/chenx6/file-station/releases)
 
 ### Add some options
 
-Add environment variable below to custom ui
+Add environment variable below to customize configs.
 
 | Name | Default | Explain |
 | - | - | - |
@@ -35,13 +35,20 @@ Add environment variable below to custom ui
 |FS_DATABASE|./database.db|Database position|
 |FS_LISTEN|127.0.0.1:5000|Listen host and port|
 |FS_REGISTER|TRUE|Can register or not ("TRUE" or "FALSE")|
-|FS_SALT||Used for password hash|
+|FS_SALT|...|Used for password hash|
 
 ### Run
 
 ```bash
 chmod +x ./file-station
 ./file-station
+```
+
+## Static Build
+
+```bash
+apt install musl-tools  # Install musl-gcc
+cargo build --release --target=x86_64-unknown-linux-musl
 ```
 
 ## Alternatives
