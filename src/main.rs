@@ -16,6 +16,7 @@ use tokio::signal;
 use tower_http::{
     compression::CompressionLayer,
     cors::{any, CorsLayer},
+    trace::TraceLayer,
 };
 
 mod dist;
@@ -86,6 +87,11 @@ async fn main() {
     let pool = SqlitePool::connect(&format!("sqlite://{}", db_url))
         .await
         .unwrap();
+    // Set the RUST_LOG, if it hasn't been explicitly defined
+    if env::var_os("RUST_LOG").is_none() {
+        env::set_var("RUST_LOG", "file-station=debug,tower_http=debug")
+    }
+    tracing_subscriber::fmt::init();
     let app = Router::new()
         .nest(
             "/api/v1",
@@ -119,7 +125,8 @@ async fn main() {
                 .allow_origin(any()),
         )
         .layer(CompressionLayer::new().br(true))
-        .layer(AddExtensionLayer::new(pool));
+        .layer(AddExtensionLayer::new(pool))
+        .layer(TraceLayer::new_for_http().on_request(()));
     let addr: SocketAddr = env::var("FS_LISTEN")
         .unwrap_or("127.0.0.1:5000".to_string())
         .parse()
