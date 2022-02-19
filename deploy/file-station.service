@@ -1,0 +1,18 @@
+[Unit]
+Description=file-station service
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+# Uncomment below if you don't want to run as root user
+# User=filestation
+# Group=filestation
+# AmbientCapabilities=CAP_NET_BIND_SERVICE
+WorkingDirectory=/home/filestation/file-station
+ExecStart=/home/filestation/file-station/file-station
+# Modify Environment below to suit you need
+# Environment=FS_LISTEN=0.0.0.0:5000
+# Environment=FS_SALT=STRING
+
+[Install]
+WantedBy=multi-user.target

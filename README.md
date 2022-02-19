@@ -45,6 +45,10 @@ chmod +x ./file-station
 ./file-station
 ```
 
+### Run as a service
+
+See [deploy](./deploy/) folder for example.
+
 ## Static Build
 
 ```bash
