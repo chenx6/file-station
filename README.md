@@ -1,6 +1,6 @@
 # file-station
 
-Just a single file net disk for single person.
+Just a single-file net disk/file manager prepared for single user.
 
 ## Features
 
