@@ -1,11 +1,12 @@
 # file-station
 
+Just a single file net disk for single person.
+
 ## Features
 
-- Don't need nginx, apache, just download a binary and run
+- Don't need nginx, apache, just download single binary file and run
 - Authentication
-- Upload, download, delete and search files
-- Rename, move file
+- Upload, download, delete, rename, move and search files
 - Share files
 - Preview audio/video/image/markdown
 
@@ -23,7 +24,7 @@
 
 ### Download 
 
-You can get binary from [HERE](https://github.com/chenx6/file-station/releases)
+You can get prebuild binary file from [HERE](https://github.com/chenx6/file-station/releases)
 
 ### Add some options
 
@@ -35,7 +36,7 @@ Add environment variable below to customize configs.
 |FS_DATABASE|./database.db|Database position|
 |FS_LISTEN|127.0.0.1:5000|Listen host and port|
 |FS_REGISTER|TRUE|Can register or not ("TRUE" or "FALSE")|
-|FS_SALT|...|Used for password hash|
+|FS_SALT|...|Used for password hash(see [Salt's document](https://docs.rs/password-hash/*/password_hash/struct.Salt.html))|
 
 ### Run
 
@@ -47,6 +48,7 @@ chmod +x ./file-station
 ## Static Build
 
 ```bash
+rustup target add x86_64-unknown-linux-musl  # Add rust musl toolchain
 apt install musl-tools  # Install musl-gcc
 cargo build --release --target=x86_64-unknown-linux-musl
 ```
