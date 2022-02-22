@@ -124,7 +124,7 @@ async fn main() {
                 .allow_headers(any())
                 .allow_origin(any()),
         )
-        .layer(CompressionLayer::new().br(true))
+        .layer(CompressionLayer::new().gzip(true).deflate(true).br(true))
         .layer(AddExtensionLayer::new(pool))
         .layer(TraceLayer::new_for_http().on_request(()));
     let addr: SocketAddr = env::var("FS_LISTEN")
