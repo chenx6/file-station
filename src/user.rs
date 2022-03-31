@@ -1,4 +1,4 @@
-use std::{env, time::SystemTime};
+use std::time::SystemTime;
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use axum::{
@@ -16,15 +16,15 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{FromRow, SqlitePool};
 
+use crate::CONFIG;
+
 lazy_static! {
     static ref KEY: String = (0..32).map(|_| rand::random::<char>()).collect();
-    static ref CAN_REGISTER: bool = env::var("FS_REGISTER").unwrap_or("TRUE".to_string()) == "TRUE";
     static ref ENCRYPT_KEY: EncodingKey = EncodingKey::from_secret(KEY.as_bytes());
     static ref DECRYPT_KEY: DecodingKey = DecodingKey::from_secret(KEY.as_bytes());
     static ref DEFAULT_HEADER: Header = Header::default();
     static ref VALIDATION: Validation = Validation::default();
-    static ref SALT: SaltString =
-        SaltString::new(&env::var("FS_SALT").unwrap_or("AAAABBBBCCCCDDDD".to_string())).unwrap();
+    static ref SALT: SaltString = SaltString::new(&CONFIG.salt).unwrap();
 }
 
 #[derive(Serialize)]
@@ -134,7 +134,7 @@ pub async fn register(
     Json(payload): Json<QueryUser>,
     Extension(pool): Extension<SqlitePool>,
 ) -> Result<(), AuthError> {
-    if *CAN_REGISTER == false {
+    if CONFIG.can_register == false {
         return Err(AuthError::WrongCredentials);
     }
     // Hash password and store it into database

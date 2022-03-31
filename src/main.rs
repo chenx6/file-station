@@ -1,9 +1,4 @@
-use std::{
-    env,
-    fs::{canonicalize, create_dir, write},
-    net::SocketAddr,
-    path::PathBuf,
-};
+use std::{env, fs::write, net::SocketAddr, path::PathBuf, sync::Arc};
 
 use axum::{
     handler::Handler,
@@ -19,10 +14,12 @@ use tower_http::{
     trace::TraceLayer,
 };
 
+mod config;
 mod dist;
 mod file;
 mod user;
 
+use config::Config;
 use dist::static_handler;
 use file::{
     file::{delete_file, get_file, rename_file, search_file, upload_file},
@@ -32,14 +29,7 @@ use file::{
 use user::{authorize, register, reset_password};
 
 lazy_static! {
-    pub static ref FOLDER: PathBuf = {
-        let path = env::var("FS_FOLDER").unwrap_or(String::from("./files/"));
-        let path = PathBuf::from(path);
-        if !path.exists() {
-            create_dir(&path).unwrap();
-        }
-        canonicalize(path).unwrap()
-    };
+    pub static ref CONFIG: Arc<Config> = Arc::new(Config::from_env());
 }
 
 /// Perform migration if database is not exist
@@ -82,9 +72,8 @@ async fn shutdown_signal() {
 
 #[tokio::main]
 async fn main() {
-    let db_url = env::var("FS_DATABASE").unwrap_or("database.db".to_string());
-    migrate(&db_url).await;
-    let pool = SqlitePool::connect(&format!("sqlite://{}", db_url))
+    migrate(&CONFIG.database_path).await;
+    let pool = SqlitePool::connect(&format!("sqlite://{}", CONFIG.database_path))
         .await
         .unwrap();
     // Set the RUST_LOG, if it hasn't been explicitly defined

@@ -9,8 +9,9 @@ use axum::{
 use tokio::fs::{read, remove_dir, remove_file, rename, write};
 
 use crate::{
-    file::{concat_path_str, is_traversal, File, FileError, Path, QueryArgs, RenameArgs, FOLDER},
+    file::{concat_path_str, is_traversal, File, FileError, Path, QueryArgs, RenameArgs},
     user::Claim,
+    CONFIG,
 };
 
 /// Get file content based on args
@@ -88,7 +89,7 @@ pub async fn search_file(
     Query(args): Query<QueryArgs>,
     _: Claim,
 ) -> Result<Json<Vec<File>>, FileError> {
-    let mut search_folders: Vec<PathBuf> = vec![FOLDER.clone()];
+    let mut search_folders: Vec<PathBuf> = vec![PathBuf::from(CONFIG.folder_path.clone())];
     let mut files = vec![];
     // Iter all folders to find matched file and folder
     while search_folders.len() != 0 {

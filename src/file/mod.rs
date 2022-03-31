@@ -15,7 +15,7 @@ use axum::{async_trait, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::FOLDER;
+use crate::CONFIG;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -59,8 +59,8 @@ impl File {
 
     /// Add "absolute" folder `path` to file
     fn absolute_path(mut self, path: &PathBuf) -> Option<Self> {
-        let mut abs_path = if path.starts_with(&*FOLDER) {
-            path.strip_prefix(&*FOLDER).ok()?.to_path_buf()
+        let mut abs_path = if path.starts_with(&CONFIG.folder_path) {
+            path.strip_prefix(&CONFIG.folder_path).ok()?.to_path_buf()
         } else {
             return None;
         };
@@ -143,7 +143,7 @@ where
 
 /// Concat `s` to base path
 fn concat_path_str(s: &String) -> PathBuf {
-    let mut path = FOLDER.clone();
+    let mut path = CONFIG.folder_path.clone();
     path.push(&PathBuf::from(s));
     path
 }
@@ -159,7 +159,7 @@ fn is_traversal(path: &PathBuf) -> bool {
             true => return true,
         },
     };
-    !abs_path.starts_with(&*FOLDER)
+    !abs_path.starts_with(&CONFIG.folder_path)
 }
 
 #[cfg(test)]
