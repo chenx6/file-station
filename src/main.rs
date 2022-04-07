@@ -3,14 +3,14 @@ use std::{env, fs::write, net::SocketAddr, path::PathBuf, sync::Arc};
 use axum::{
     handler::Handler,
     routing::{get, patch, post},
-    AddExtensionLayer, Router,
+    Extension, Router,
 };
 use lazy_static::lazy_static;
 use sqlx::{migrate, SqlitePool};
 use tokio::signal;
 use tower_http::{
     compression::CompressionLayer,
-    cors::{any, CorsLayer},
+    cors::{Any, CorsLayer},
     trace::TraceLayer,
 };
 
@@ -109,12 +109,12 @@ async fn main() {
         .fallback(static_handler.into_service())
         .layer(
             CorsLayer::new()
-                .allow_methods(any())
-                .allow_headers(any())
-                .allow_origin(any()),
+                .allow_methods(Any)
+                .allow_headers(Any)
+                .allow_origin(Any),
         )
         .layer(CompressionLayer::new().gzip(true).deflate(true).br(true))
-        .layer(AddExtensionLayer::new(pool))
+        .layer(Extension(pool))
         .layer(TraceLayer::new_for_http().on_request(()));
     let addr: SocketAddr = env::var("FS_LISTEN")
         .unwrap_or("127.0.0.1:5000".to_string())
