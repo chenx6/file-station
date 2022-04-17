@@ -114,7 +114,6 @@ pub struct QueryArgs {
 
 #[derive(Deserialize)]
 pub struct RenameArgs {
-    from: String,
     to: String,
 }
 

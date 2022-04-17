@@ -30,11 +30,11 @@ pub async fn delete_file(
 /// Rename file
 pub async fn rename_file(
     Query(args): Query<RenameArgs>,
+    CheckedPath(from): CheckedPath,
     _: Claim,
 ) -> Result<StatusCode, FileError> {
-    let from = concat_path_str(&args.from);
     let to = concat_path_str(&args.to);
-    if is_traversal(&from) || is_traversal(&to) {
+    if is_traversal(&to) {
         return Err(FileError::PathError);
     }
     rename(from, to).await?;
@@ -42,14 +42,16 @@ pub async fn rename_file(
 }
 
 /// Using multipart to accept upload file
-pub async fn upload_file(mut multipart: Multipart, _: Claim) -> Result<StatusCode, FileError> {
+pub async fn upload_file(
+    CheckedPath(mut path): CheckedPath,
+    mut multipart: Multipart,
+    _: Claim,
+) -> Result<StatusCode, FileError> {
     // New file `data` will be store in `FOLDER + path + name`
-    let mut path: Option<String> = None;
     let mut data: Option<Bytes> = None;
     let mut name: Option<String> = None;
     while let Some(field) = multipart.next_field().await? {
         match field.name() {
-            Some("path") => path = Some(field.text().await?),
             Some("file") => {
                 name = Some(
                     field
@@ -63,10 +65,8 @@ pub async fn upload_file(mut multipart: Multipart, _: Claim) -> Result<StatusCod
             _ => return Err(FileError::ContentError),
         }
     }
-    let path = path.ok_or(FileError::ContentError)?;
     let data = data.ok_or(FileError::ContentError)?;
     let name = name.ok_or(FileError::ContentError)?;
-    let mut path = concat_path_str(&path);
     path.push(&name);
     if is_traversal(&path) {
         return Err(FileError::PathError);
