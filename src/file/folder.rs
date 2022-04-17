@@ -3,12 +3,15 @@ use std::fs::create_dir;
 use axum::{http::StatusCode, Json};
 
 use crate::{
-    file::{File, FileError, Path},
+    file::{CheckedPath, File, FileError},
     user::Claim,
 };
 
 /// Get folder content based on args
-pub async fn get_folder(Path(path): Path, _: Claim) -> Result<Json<Vec<File>>, FileError> {
+pub async fn get_folder(
+    CheckedPath(path): CheckedPath,
+    _: Claim,
+) -> Result<Json<Vec<File>>, FileError> {
     if !path.is_dir() {
         return Err(FileError::PathError);
     }
@@ -16,7 +19,10 @@ pub async fn get_folder(Path(path): Path, _: Claim) -> Result<Json<Vec<File>>, F
 }
 
 /// Create folder
-pub async fn create_folder(Path(path): Path, _: Claim) -> Result<StatusCode, FileError> {
+pub async fn create_folder(
+    CheckedPath(path): CheckedPath,
+    _: Claim,
+) -> Result<StatusCode, FileError> {
     create_dir(path)?;
     Ok(StatusCode::OK)
 }

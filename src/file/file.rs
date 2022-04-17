@@ -9,13 +9,16 @@ use axum::{
 use tokio::fs::{remove_dir, remove_file, rename, write};
 
 use crate::{
-    file::{concat_path_str, is_traversal, File, FileError, Path, QueryArgs, RenameArgs},
+    file::{concat_path_str, is_traversal, CheckedPath, File, FileError, QueryArgs, RenameArgs},
     user::Claim,
     CONFIG,
 };
 
 /// Delete file
-pub async fn delete_file(Path(path): Path, _: Claim) -> Result<StatusCode, FileError> {
+pub async fn delete_file(
+    CheckedPath(path): CheckedPath,
+    _: Claim,
+) -> Result<StatusCode, FileError> {
     if path.is_dir() {
         remove_dir(path).await?;
     } else {

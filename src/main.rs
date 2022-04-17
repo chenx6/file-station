@@ -95,7 +95,7 @@ async fn main() {
                 .route("/users", post(register))
                 .route("/user", patch(reset_password))
                 .nest(
-                    "/file",
+                    "/file/",
                     get_service(ServeDir::new(CONFIG.folder_path.clone()))
                         .handle_error(handle_file_error)
                         .layer(extractor_middleware::<Claim>())
@@ -103,7 +103,7 @@ async fn main() {
                         .patch(rename_file)
                         .post(upload_file),
                 )
-                .route("/files", get(get_folder).post(create_folder))
+                .route("/files/*path", get(get_folder).post(create_folder))
                 .route("/search", get(search_file))
                 .route(
                     "/share",
