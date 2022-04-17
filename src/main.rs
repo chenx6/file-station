@@ -1,8 +1,9 @@
 use std::{env, fs::write, net::SocketAddr, path::PathBuf, sync::Arc};
 
 use axum::{
+    extract::extractor_middleware,
     handler::Handler,
-    routing::{get, patch, post},
+    routing::{get, get_service, patch, post},
     Extension, Router,
 };
 use lazy_static::lazy_static;
@@ -11,6 +12,7 @@ use tokio::signal;
 use tower_http::{
     compression::CompressionLayer,
     cors::{Any, CorsLayer},
+    services::ServeDir,
     trace::TraceLayer,
 };
 
@@ -22,11 +24,11 @@ mod user;
 use config::Config;
 use dist::static_handler;
 use file::{
-    file::{delete_file, get_file, rename_file, search_file, upload_file},
+    file::{delete_file, rename_file, search_file, upload_file},
     folder::{create_folder, get_folder},
     share::{add_share_file, delete_share, get_share_file, get_share_index},
 };
-use user::{authorize, register, reset_password};
+use user::{authorize, register, reset_password, Claim};
 
 lazy_static! {
     pub static ref CONFIG: Arc<Config> = Arc::new(Config::from_env());
@@ -70,6 +72,10 @@ async fn shutdown_signal() {
     println!("signal received, starting graceful shutdown");
 }
 
+async fn handle_file_error(_: std::io::Error) {
+    ()
+}
+
 #[tokio::main]
 async fn main() {
     migrate(&CONFIG.database_path).await;
@@ -88,9 +94,11 @@ async fn main() {
                 .route("/auth", post(authorize))
                 .route("/users", post(register))
                 .route("/user", patch(reset_password))
-                .route(
+                .nest(
                     "/file",
-                    get(get_file)
+                    get_service(ServeDir::new(CONFIG.folder_path.clone()))
+                        .handle_error(handle_file_error)
+                        .layer(extractor_middleware::<Claim>())
                         .delete(delete_file)
                         .patch(rename_file)
                         .post(upload_file),

@@ -6,21 +6,13 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use tokio::fs::{read, remove_dir, remove_file, rename, write};
+use tokio::fs::{remove_dir, remove_file, rename, write};
 
 use crate::{
     file::{concat_path_str, is_traversal, File, FileError, Path, QueryArgs, RenameArgs},
     user::Claim,
     CONFIG,
 };
-
-/// Get file content based on args
-pub async fn get_file(Path(path): Path, _: Claim) -> Result<Vec<u8>, FileError> {
-    if !path.is_file() {
-        return Err(FileError::PathError);
-    }
-    Ok(read(&path).await?)
-}
 
 /// Delete file
 pub async fn delete_file(Path(path): Path, _: Claim) -> Result<StatusCode, FileError> {
