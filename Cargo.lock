@@ -350,6 +350,7 @@ dependencies = [
  "jsonwebtoken",
  "lazy_static",
  "mime_guess",
+ "percent-encoding",
  "rand",
  "rust-embed",
  "serde",

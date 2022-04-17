@@ -12,6 +12,7 @@ use axum::extract::{FromRequest, Path, RequestParts};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::{async_trait, Json};
+use percent_encoding::percent_decode_str;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -137,7 +138,10 @@ where
             p
         } else {
             // `/file` path contains relative path starts with '/'
-            path.to_string()
+            percent_decode_str(path)
+                .decode_utf8()
+                .map_err(|_| FileError::PathError)?
+                .to_string()
         };
         // Concat and check path is valid
         let path = concat_path_str(&path);

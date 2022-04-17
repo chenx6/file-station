@@ -21,3 +21,4 @@ rand = "0.8.4"
 argon2 = "0.3.3"
 tracing = "0.1"
 tracing-subscriber = { version="0.3", features = ["env-filter"] }
+percent-encoding = "2.1.0"
