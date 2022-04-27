@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 axum = { version = "0.5.1", features = ["headers", "multipart"] }
 tokio = { version = "1", features = ["full"] }
-tower-http = { version = "0.2.2", features = ["cors", "compression-full", "trace"] }
+tower-http = { version = "0.2.2", features = ["cors", "compression-full", "trace", "fs"] }
 serde = "1.0.136"
 serde_json = "1.0.78"
 jsonwebtoken = "8.0.1"
@@ -21,3 +21,4 @@ rand = "0.8.4"
 argon2 = "0.3.3"
 tracing = "0.1"
 tracing-subscriber = { version="0.3", features = ["env-filter"] }
+percent-encoding = "2.1.0"

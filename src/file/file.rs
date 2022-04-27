@@ -6,24 +6,19 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use tokio::fs::{read, remove_dir, remove_file, rename, write};
+use tokio::fs::{remove_dir, remove_file, rename, write};
 
 use crate::{
-    file::{concat_path_str, is_traversal, File, FileError, Path, QueryArgs, RenameArgs},
+    file::{concat_path_str, is_traversal, CheckedPath, File, FileError, QueryArgs, RenameArgs},
     user::Claim,
     CONFIG,
 };
 
-/// Get file content based on args
-pub async fn get_file(Path(path): Path, _: Claim) -> Result<Vec<u8>, FileError> {
-    if !path.is_file() {
-        return Err(FileError::PathError);
-    }
-    Ok(read(&path).await?)
-}
-
 /// Delete file
-pub async fn delete_file(Path(path): Path, _: Claim) -> Result<StatusCode, FileError> {
+pub async fn delete_file(
+    CheckedPath(path): CheckedPath,
+    _: Claim,
+) -> Result<StatusCode, FileError> {
     if path.is_dir() {
         remove_dir(path).await?;
     } else {
@@ -35,11 +30,11 @@ pub async fn delete_file(Path(path): Path, _: Claim) -> Result<StatusCode, FileE
 /// Rename file
 pub async fn rename_file(
     Query(args): Query<RenameArgs>,
+    CheckedPath(from): CheckedPath,
     _: Claim,
 ) -> Result<StatusCode, FileError> {
-    let from = concat_path_str(&args.from);
     let to = concat_path_str(&args.to);
-    if is_traversal(&from) || is_traversal(&to) {
+    if is_traversal(&to) {
         return Err(FileError::PathError);
     }
     rename(from, to).await?;
@@ -47,14 +42,16 @@ pub async fn rename_file(
 }
 
 /// Using multipart to accept upload file
-pub async fn upload_file(mut multipart: Multipart, _: Claim) -> Result<StatusCode, FileError> {
+pub async fn upload_file(
+    CheckedPath(mut path): CheckedPath,
+    mut multipart: Multipart,
+    _: Claim,
+) -> Result<StatusCode, FileError> {
     // New file `data` will be store in `FOLDER + path + name`
-    let mut path: Option<String> = None;
     let mut data: Option<Bytes> = None;
     let mut name: Option<String> = None;
     while let Some(field) = multipart.next_field().await? {
         match field.name() {
-            Some("path") => path = Some(field.text().await?),
             Some("file") => {
                 name = Some(
                     field
@@ -68,10 +65,8 @@ pub async fn upload_file(mut multipart: Multipart, _: Claim) -> Result<StatusCod
             _ => return Err(FileError::ContentError),
         }
     }
-    let path = path.ok_or(FileError::ContentError)?;
     let data = data.ok_or(FileError::ContentError)?;
     let name = name.ok_or(FileError::ContentError)?;
-    let mut path = concat_path_str(&path);
     path.push(&name);
     if is_traversal(&path) {
         return Err(FileError::PathError);

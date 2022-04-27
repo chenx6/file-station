@@ -8,10 +8,11 @@ use std::path::PathBuf;
 use std::time::SystemTime;
 
 use axum::extract::multipart::MultipartError;
-use axum::extract::{FromRequest, Query, RequestParts};
+use axum::extract::{FromRequest, Path, RequestParts};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::{async_trait, Json};
+use percent_encoding::percent_decode_str;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -114,37 +115,48 @@ pub struct QueryArgs {
 
 #[derive(Deserialize)]
 pub struct RenameArgs {
-    from: String,
     to: String,
 }
 
-/// Path argument Extractor
-pub struct Path(PathBuf);
+/// Path Extractor with check
+pub struct CheckedPath(PathBuf);
 
 #[async_trait]
-impl<B> FromRequest<B> for Path
+impl<B> FromRequest<B> for CheckedPath
 where
     B: Send,
 {
     type Rejection = FileError;
 
     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let Query(args) = Query::<QueryArgs>::from_request(req)
-            .await
-            .map_err(|_| FileError::PathError)?;
+        let path = req.uri().path();
+        let path = if path.starts_with("/files/") {
+            // use extractor to extract relative path of `/files`
+            let Path(p) = Path::<String>::from_request(req)
+                .await
+                .map_err(|_| FileError::PathError)?;
+            p
+        } else {
+            // `/file` path contains relative path starts with '/'
+            percent_decode_str(path)
+                .decode_utf8()
+                .map_err(|_| FileError::PathError)?
+                .to_string()
+        };
         // Concat and check path is valid
-        let path = concat_path_str(&args.name);
+        let path = concat_path_str(&path);
         if is_traversal(&path) {
             return Err(FileError::PathError);
         }
-        Ok(Path(path))
+        Ok(CheckedPath(path))
     }
 }
 
 /// Concat `s` to base path
 fn concat_path_str(s: &String) -> PathBuf {
     let mut path = CONFIG.folder_path.clone();
-    path.push(&PathBuf::from(s));
+    // AVOID ANTI-PATTEN `path.push` by triming '/' in the beginning of the path
+    path.push(&PathBuf::from(s.trim_start_matches('/')));
     path
 }
 
