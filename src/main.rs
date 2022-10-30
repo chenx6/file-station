@@ -1,7 +1,7 @@
 use std::{env, fs::write, net::SocketAddr, path::PathBuf, sync::Arc};
 
 use axum::{
-    extract::extractor_middleware,
+    middleware::from_extractor,
     handler::Handler,
     routing::{get, get_service, patch, post},
     Extension, Router,
@@ -98,7 +98,7 @@ async fn main() {
                     "/file/",
                     get_service(ServeDir::new(CONFIG.folder_path.clone()))
                         .handle_error(handle_file_error)
-                        .layer(extractor_middleware::<Claim>())
+                        .layer(from_extractor::<Claim>())
                         .delete(delete_file)
                         .patch(rename_file)
                         .post(upload_file),
