@@ -13,8 +13,6 @@ pub struct Config {
     pub listen_addr: String,
     /// FS_REGISTER
     pub can_register: bool,
-    /// FS_SALT
-    pub salt: String,
 }
 
 impl Config {
@@ -24,7 +22,6 @@ impl Config {
             database_path: "./database.db".into(),
             listen_addr: "127.0.0.1:5000".into(),
             can_register: true,
-            salt: "AAAABBBBCCCCDDDD".into(),
         }
     }
 
@@ -47,17 +44,12 @@ impl Config {
             .unwrap_or(&"127.0.0.1:5000".into())
             .clone();
         let can_register = e.get("FS_REGISTER").unwrap_or(&"TRUE".into()) == "TRUE";
-        let salt = e
-            .get("FS_SALT")
-            .unwrap_or(&"AAAABBBBCCCCDDDD".into())
-            .clone();
 
         Config {
             folder_path,
             database_path,
             listen_addr,
             can_register,
-            salt,
         }
     }
 }

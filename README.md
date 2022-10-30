@@ -36,7 +36,6 @@ Add environment variable below to customize configs.
 |FS_DATABASE|./database.db|Database position|
 |FS_LISTEN|127.0.0.1:5000|Listen host and port|
 |FS_REGISTER|TRUE|Can register or not ("TRUE" or "FALSE")|
-|FS_SALT|...|Used for password hash(see [Salt's document](https://docs.rs/password-hash/*/password_hash/struct.Salt.html))|
 
 ### Run
 

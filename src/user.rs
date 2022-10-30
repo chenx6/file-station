@@ -1,6 +1,9 @@
 use std::time::SystemTime;
 
-use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+use argon2::{
+    password_hash::{rand_core::OsRng, SaltString},
+    Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+};
 use axum::{
     async_trait,
     extract::{Extension, FromRequest, RequestParts, TypedHeader},
@@ -24,7 +27,6 @@ lazy_static! {
     static ref DECRYPT_KEY: DecodingKey = DecodingKey::from_secret(KEY.as_bytes());
     static ref DEFAULT_HEADER: Header = Header::default();
     static ref VALIDATION: Validation = Validation::default();
-    static ref SALT: SaltString = SaltString::new(&CONFIG.salt).unwrap();
 }
 
 #[derive(Serialize)]
@@ -84,7 +86,7 @@ fn check_hash(password: &String, hash: &String) -> bool {
 fn gen_hash(password: &String) -> Option<String> {
     Some(
         Argon2::default()
-            .hash_password(password.as_bytes(), SALT.as_ref())
+            .hash_password(password.as_bytes(), &SaltString::generate(&mut OsRng))
             .ok()?
             .to_string(),
     )
@@ -241,7 +243,8 @@ mod test {
     #[test]
     fn test_hash() {
         let password = b"PASSWORD";
-        let password_hash = Argon2::default().hash_password(password, SALT.as_ref());
+        let salt = SaltString::generate(&mut OsRng);
+        let password_hash = Argon2::default().hash_password(password, &salt);
         assert!(password_hash.is_ok(), "{:#?}", password_hash);
     }
 }
