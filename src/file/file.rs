@@ -44,8 +44,8 @@ pub async fn rename_file(
 /// Using multipart to accept upload file
 pub async fn upload_file(
     CheckedPath(mut path): CheckedPath,
-    mut multipart: Multipart,
     _: Claim,
+    mut multipart: Multipart,
 ) -> Result<StatusCode, FileError> {
     // New file `data` will be store in `FOLDER + path + name`
     let mut data: Option<Bytes> = None;
