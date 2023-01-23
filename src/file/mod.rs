@@ -8,7 +8,8 @@ use std::path::PathBuf;
 use std::time::SystemTime;
 
 use axum::extract::multipart::MultipartError;
-use axum::extract::{FromRequest, Path, RequestParts};
+use axum::extract::{FromRequestParts, Path};
+use axum::http::request::Parts;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::{async_trait, Json};
@@ -122,20 +123,23 @@ pub struct RenameArgs {
 pub struct CheckedPath(PathBuf);
 
 #[async_trait]
-impl<B> FromRequest<B> for CheckedPath
+impl<S> FromRequestParts<S> for CheckedPath
 where
-    B: Send,
+    S: Send + Sync,
 {
     type Rejection = FileError;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let path = req.uri().path();
-        let path = if path.starts_with("/files/") {
+    async fn from_request_parts(req: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let path = req.uri.path();
+        let path = if path.starts_with("/files/") && path != "/files/" {
             // use extractor to extract relative path of `/files`
-            let Path(p) = Path::<String>::from_request(req)
+            let Path(p) = Path::<String>::from_request_parts(req, state)
                 .await
                 .map_err(|_| FileError::PathError)?;
             p
+        } else if path == "/files/" {
+            // In axum 0.6, Path extractor cannot extract "/files/", so we return "." directly
+            String::from(".")
         } else {
             // `/file` path contains relative path starts with '/'
             percent_decode_str(path)

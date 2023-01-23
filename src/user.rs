@@ -6,10 +6,10 @@ use argon2::{
 };
 use axum::{
     async_trait,
-    extract::{Extension, FromRequest, RequestParts, TypedHeader},
+    extract::{Extension, FromRequestParts, TypedHeader},
     headers::Cookie,
     headers::{authorization::Bearer, Authorization},
-    http::{header, StatusCode},
+    http::{header, request::Parts, StatusCode},
     response::{IntoResponse, Response},
     Json,
 };
@@ -94,8 +94,8 @@ fn gen_hash(password: &String) -> Option<String> {
 
 /// Login authorization
 pub async fn authorize(
-    Json(payload): Json<QueryUser>,
     Extension(pool): Extension<SqlitePool>,
+    Json(payload): Json<QueryUser>,
 ) -> Result<Response, AuthError> {
     // Check if the user sent the credentials
     if payload.username.is_empty() || payload.password.is_empty() {
@@ -133,8 +133,8 @@ pub async fn authorize(
 
 /// Register
 pub async fn register(
-    Json(payload): Json<QueryUser>,
     Extension(pool): Extension<SqlitePool>,
+    Json(payload): Json<QueryUser>,
 ) -> Result<(), AuthError> {
     if CONFIG.can_register == false {
         return Err(AuthError::WrongCredentials);
@@ -154,9 +154,9 @@ pub async fn register(
 
 /// Reset password with old and new password
 pub async fn reset_password(
-    Json(payload): Json<ResetPassword>,
     claim: Claim,
     Extension(pool): Extension<SqlitePool>,
+    Json(payload): Json<ResetPassword>,
 ) -> Result<StatusCode, AuthError> {
     let result = sqlx::query!(
         "SELECT password FROM user WHERE username = ?",
@@ -201,21 +201,21 @@ impl IntoResponse for AuthError {
 }
 
 #[async_trait]
-impl<B> FromRequest<B> for Claim
+impl<S> FromRequestParts<S> for Claim
 where
-    B: Send,
+    S: Send + Sync,
 {
     type Rejection = AuthError;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(req: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         // Extract the token from the authorization header
         let bearer = if let Ok(TypedHeader(Authorization(bearer))) =
-            TypedHeader::<Authorization<Bearer>>::from_request(req).await
+            TypedHeader::<Authorization<Bearer>>::from_request_parts(req, state).await
         {
             bearer.token().to_string()
         } else {
             // If header don't have authorizaiton header, attempt to find it in cookie
-            let cookie = Option::<TypedHeader<Cookie>>::from_request(req)
+            let cookie = Option::<TypedHeader<Cookie>>::from_request_parts(req, state)
                 .await
                 .map_err(|_| AuthError::MissingCredentials)?;
             let auth_cookie = cookie

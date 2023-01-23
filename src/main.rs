@@ -2,7 +2,6 @@ use std::{env, fs::write, net::SocketAddr, path::PathBuf, sync::Arc};
 
 use axum::{
     middleware::from_extractor,
-    handler::Handler,
     routing::{get, get_service, patch, post},
     Extension, Router,
 };
@@ -94,7 +93,7 @@ async fn main() {
                 .route("/auth", post(authorize))
                 .route("/users", post(register))
                 .route("/user", patch(reset_password))
-                .nest(
+                .nest_service(
                     "/file/",
                     get_service(ServeDir::new(CONFIG.folder_path.clone()))
                         .handle_error(handle_file_error)
@@ -104,6 +103,7 @@ async fn main() {
                         .post(upload_file),
                 )
                 .route("/files/*path", get(get_folder).post(create_folder))
+                .route("/files/", get(get_folder).post(create_folder))
                 .route("/search", get(search_file))
                 .route(
                     "/share",
@@ -113,8 +113,8 @@ async fn main() {
                 )
                 .route("/shares", get(get_share_index)),
         )
-        .route("/assets/", static_handler.into_service())
-        .fallback(static_handler.into_service())
+        .route("/assets/", get(static_handler))
+        .fallback(static_handler)
         .layer(
             CorsLayer::new()
                 .allow_methods(Any)
