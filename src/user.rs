@@ -114,16 +114,18 @@ pub async fn authorize(
         Some(p) if check_hash(&payload.password, &p) => (),
         _ => return Err(AuthError::WrongCredentials),
     }
+    let expire_age = 60 * 60 * 24; // Token/Cookies expire age
+
     // Create the authorization token
     let claims = Claim {
         sub: "file".to_owned(),
         username: payload.username,
-        exp: get_unix_timestamp() + 60 * 60 * 24,
+        exp: expire_age + get_unix_timestamp(),
     };
     let token =
         encode(&Header::default(), &claims, &ENCRYPT_KEY).map_err(|_| AuthError::TokenCreation)?;
     // Add token to cookies
-    let cookie = format!("Authorization=Bearer {}; ", &token);
+    let cookie = format!("Authorization=Bearer {}; Max-Age={}", &token, expire_age);
     let mut response = Json(Token { token }).into_response();
     response
         .headers_mut()
