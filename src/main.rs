@@ -71,10 +71,6 @@ async fn shutdown_signal() {
     println!("signal received, starting graceful shutdown");
 }
 
-async fn handle_file_error(_: std::io::Error) {
-    ()
-}
-
 #[tokio::main]
 async fn main() {
     migrate(&CONFIG.database_path).await;
@@ -96,13 +92,12 @@ async fn main() {
                 .nest_service(
                     "/file/",
                     get_service(ServeDir::new(CONFIG.folder_path.clone()))
-                        .handle_error(handle_file_error)
                         .layer(from_extractor::<Claim>())
                         .delete(delete_file)
                         .patch(rename_file)
                         .post(upload_file),
                 )
-                .route("/files/*path", get(get_folder).post(create_folder))
+                .route("/files/{*path}", get(get_folder).post(create_folder))
                 .route("/files/", get(get_folder).post(create_folder))
                 .route("/search", get(search_file))
                 .route(
@@ -128,8 +123,8 @@ async fn main() {
         .unwrap_or("127.0.0.1:5000".to_string())
         .parse()
         .unwrap();
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();

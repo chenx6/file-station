@@ -1,5 +1,5 @@
 use axum::{
-    body::{boxed, Full},
+    body::Body,
     http::{header, Uri},
     response::{IntoResponse, Response},
 };
@@ -27,7 +27,7 @@ where
         let path = self.0.into();
         match Asset::get(path.as_str()) {
             Some(content) => {
-                let body = boxed(Full::from(content.data));
+                let body = Body::from(content.data.into_owned());
                 let mime = mime_guess::from_path(path).first_or_octet_stream();
                 Response::builder()
                     .header(header::CONTENT_TYPE, mime.as_ref())
@@ -37,13 +37,18 @@ where
             }
             None => {
                 // Returning index as default because we are bundling Single-page application
-                let data = Asset::get("index.html").unwrap().data;
-                let body = boxed(Full::from(data));
-                Response::builder()
-                    .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
-                    .header(header::CACHE_CONTROL, CACHE_CONTROL_TIME)
-                    .body(body)
-                    .unwrap()
+                match Asset::get("index.html") {
+                    Some(content) => Response::builder()
+                        .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
+                        .header(header::CACHE_CONTROL, CACHE_CONTROL_TIME)
+                        .body(Body::from(content.data.into_owned()))
+                        .unwrap(),
+                    None => (
+                        axum::http::StatusCode::NOT_FOUND,
+                        "Frontend assets are not available",
+                    )
+                        .into_response(),
+                }
             }
         }
     }

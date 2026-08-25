@@ -56,6 +56,19 @@ apt install musl-tools  # Install musl-gcc
 cargo build --release --target=x86_64-unknown-linux-musl
 ```
 
+## Update SQLx query metadata
+
+The project uses SQLx's checked query macros and commits the generated `.sqlx/`
+metadata, so a database is not required for normal builds. After changing a SQL
+query or migration, regenerate the metadata with:
+
+```bash
+cargo install sqlx-cli --version 0.8.6 --no-default-features --features sqlite
+DATABASE_URL=sqlite://database.db cargo sqlx database create
+DATABASE_URL=sqlite://database.db cargo sqlx migrate run
+cargo sqlx prepare --database-url sqlite://database.db -- --all-targets
+```
+
 ## License
 
 ```plaintext

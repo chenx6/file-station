@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT path, url, password FROM share",
+  "describe": {
+    "columns": [
+      {
+        "name": "path",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "url",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "password",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "f83a266f0ab1ba147c14a203613ae2799fbad8bb7eea4529907c9947680a98cb"
+}

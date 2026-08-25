@@ -53,10 +53,10 @@ pub async fn add_share_file(
     let url = loop {
         // Generate random url and ensure it is unique
         let random = rand::random::<u32>().to_string();
-        let result = sqlx::query!("SELECT url FROM share where url = ?", random)
-            .fetch_all(&db)
+        let exists = sqlx::query_scalar!("SELECT 1 FROM share WHERE url = ?", random)
+            .fetch_optional(&db)
             .await?;
-        if result.len() == 0 {
+        if exists.is_none() {
             break random;
         }
         counter += 1;
@@ -92,9 +92,13 @@ pub async fn get_share_file(
     Query(args): Query<QueryShareArgs>,
     Extension(db): Extension<SqlitePool>,
 ) -> Result<Response, FileError> {
-    let result = sqlx::query!("SELECT * FROM share WHERE url = ?", args.url)
-        .fetch_one(&db)
-        .await?;
+    let result = sqlx::query_as!(
+        ShareIndex,
+        "SELECT path, url, password FROM share WHERE url = ?",
+        args.url
+    )
+    .fetch_one(&db)
+    .await?;
     if args.password != result.password {
         return Err(FileError::ContentError);
     }
