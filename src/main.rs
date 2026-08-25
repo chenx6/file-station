@@ -1,12 +1,12 @@
 use std::{env, fs::write, net::SocketAddr, path::PathBuf, sync::Arc};
 
 use axum::{
+    Extension, Router,
     middleware::from_extractor,
     routing::{get, get_service, patch, post},
-    Extension, Router,
 };
 use lazy_static::lazy_static;
-use sqlx::{migrate, SqlitePool};
+use sqlx::{SqlitePool, migrate};
 use tokio::signal;
 use tower_http::{
     compression::CompressionLayer,
@@ -14,6 +14,7 @@ use tower_http::{
     services::ServeDir,
     trace::TraceLayer,
 };
+use tracing_subscriber::EnvFilter;
 
 mod config;
 mod dist;
@@ -27,7 +28,7 @@ use file::{
     folder::{create_folder, get_folder},
     share::{add_share_file, delete_share, get_share_file, get_share_index},
 };
-use user::{authorize, register, reset_password, Claim};
+use user::{Claim, authorize, register, reset_password};
 
 lazy_static! {
     pub static ref CONFIG: Arc<Config> = Arc::new(Config::from_env());
@@ -71,21 +72,15 @@ async fn shutdown_signal() {
     println!("signal received, starting graceful shutdown");
 }
 
-async fn handle_file_error(_: std::io::Error) {
-    ()
-}
-
 #[tokio::main]
 async fn main() {
     migrate(&CONFIG.database_path).await;
     let pool = SqlitePool::connect(&format!("sqlite://{}", CONFIG.database_path))
         .await
         .unwrap();
-    // Set the RUST_LOG, if it hasn't been explicitly defined
-    if env::var_os("RUST_LOG").is_none() {
-        env::set_var("RUST_LOG", "file-station=debug,tower_http=debug")
-    }
-    tracing_subscriber::fmt::init();
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("file-station=debug,tower_http=debug"));
+    tracing_subscriber::fmt().with_env_filter(filter).init();
     let app = Router::new()
         .nest(
             "/api/v1",
@@ -96,13 +91,12 @@ async fn main() {
                 .nest_service(
                     "/file/",
                     get_service(ServeDir::new(CONFIG.folder_path.clone()))
-                        .handle_error(handle_file_error)
                         .layer(from_extractor::<Claim>())
                         .delete(delete_file)
                         .patch(rename_file)
                         .post(upload_file),
                 )
-                .route("/files/*path", get(get_folder).post(create_folder))
+                .route("/files/{*path}", get(get_folder).post(create_folder))
                 .route("/files/", get(get_folder).post(create_folder))
                 .route("/search", get(search_file))
                 .route(
@@ -128,8 +122,8 @@ async fn main() {
         .unwrap_or("127.0.0.1:5000".to_string())
         .parse()
         .unwrap();
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();

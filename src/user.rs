@@ -1,23 +1,20 @@
 use std::time::SystemTime;
 
 use argon2::{
-    password_hash::{rand_core::OsRng, SaltString},
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+    password_hash::{SaltString, rand_core::OsRng},
 };
 use axum::{
-    async_trait,
-    extract::{Extension, FromRequestParts, TypedHeader},
-    headers::Cookie,
-    headers::{authorization::Bearer, Authorization},
-    http::{header, request::Parts, StatusCode},
-    response::{IntoResponse, Response},
     Json,
+    extract::{Extension, FromRequestParts},
+    http::{StatusCode, header, request::Parts},
+    response::{IntoResponse, Response},
 };
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::{FromRow, SqlitePool};
+use sqlx::SqlitePool;
 
 use crate::CONFIG;
 
@@ -34,7 +31,7 @@ pub struct Token {
     token: String,
 }
 
-#[derive(Deserialize, FromRow)]
+#[derive(Deserialize)]
 pub struct QueryUser {
     username: String,
     password: String,
@@ -102,7 +99,7 @@ pub async fn authorize(
         return Err(AuthError::MissingCredentials);
     }
     // Get password hash in database
-    let result = sqlx::query!(
+    let password = sqlx::query_scalar!(
         "SELECT password FROM user WHERE username = ?",
         payload.username
     )
@@ -110,7 +107,7 @@ pub async fn authorize(
     .await
     .map_err(|_| AuthError::DatabaseError)?;
     // Verify password hash
-    match result.password {
+    match password {
         Some(p) if check_hash(&payload.password, &p) => (),
         _ => return Err(AuthError::WrongCredentials),
     }
@@ -160,14 +157,14 @@ pub async fn reset_password(
     Extension(pool): Extension<SqlitePool>,
     Json(payload): Json<ResetPassword>,
 ) -> Result<StatusCode, AuthError> {
-    let result = sqlx::query!(
+    let password_db = sqlx::query_scalar!(
         "SELECT password FROM user WHERE username = ?",
         claim.username
     )
     .fetch_one(&pool)
     .await
-    .map_err(|_| AuthError::DatabaseError)?;
-    let password_db = result.password.ok_or(AuthError::DatabaseError)?;
+    .map_err(|_| AuthError::DatabaseError)?
+    .ok_or(AuthError::DatabaseError)?;
     // Check user-input old password is correct
     if check_hash(&payload.old_password, &password_db) {
         // Only if the old password is correct, we can modify password in database
@@ -202,27 +199,33 @@ impl IntoResponse for AuthError {
     }
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for Claim
 where
     S: Send + Sync,
 {
     type Rejection = AuthError;
 
-    async fn from_request_parts(req: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(req: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         // Extract the token from the authorization header
-        let bearer = if let Ok(TypedHeader(Authorization(bearer))) =
-            TypedHeader::<Authorization<Bearer>>::from_request_parts(req, state).await
-        {
-            bearer.token().to_string()
+        let bearer = if let Some(value) = req.headers.get(header::AUTHORIZATION) {
+            value
+                .to_str()
+                .map_err(|_| AuthError::InvalidToken)?
+                .strip_prefix("Bearer ")
+                .ok_or(AuthError::InvalidToken)?
+                .to_owned()
         } else {
             // If header don't have authorizaiton header, attempt to find it in cookie
-            let cookie = Option::<TypedHeader<Cookie>>::from_request_parts(req, state)
-                .await
-                .map_err(|_| AuthError::MissingCredentials)?;
+            let cookie = req
+                .headers
+                .get(header::COOKIE)
+                .ok_or(AuthError::MissingCredentials)?
+                .to_str()
+                .map_err(|_| AuthError::InvalidToken)?;
             let auth_cookie = cookie
-                .as_ref()
-                .and_then(|cookie| cookie.get("Authorization"))
+                .split(';')
+                .filter_map(|cookie| cookie.trim().split_once('='))
+                .find_map(|(name, value)| (name == "Authorization").then_some(value))
                 .ok_or(AuthError::MissingCredentials)?;
             auth_cookie
                 .strip_prefix("Bearer ")

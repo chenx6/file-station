@@ -7,12 +7,12 @@ use std::io;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
+use axum::Json;
 use axum::extract::multipart::MultipartError;
 use axum::extract::{FromRequestParts, Path};
-use axum::http::request::Parts;
 use axum::http::StatusCode;
+use axum::http::request::Parts;
 use axum::response::IntoResponse;
-use axum::{async_trait, Json};
 use percent_encoding::percent_decode_str;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -122,7 +122,6 @@ pub struct RenameArgs {
 /// Path Extractor with check
 pub struct CheckedPath(PathBuf);
 
-#[async_trait]
 impl<S> FromRequestParts<S> for CheckedPath
 where
     S: Send + Sync,
@@ -184,16 +183,20 @@ mod test {
 
     #[test]
     fn test_traversal() {
-        assert_eq!(is_traversal(&PathBuf::from("files/test_file")), false);
-        assert_eq!(is_traversal(&PathBuf::from("src")), true);
-        assert_eq!(is_traversal(&PathBuf::from("/etc/passwd")), true);
+        assert!(!is_traversal(&CONFIG.folder_path.join("test_file")));
+        assert!(is_traversal(&PathBuf::from("src")));
+        assert!(is_traversal(&PathBuf::from("/etc/passwd")));
     }
 
     #[test]
     fn test_file_struct() {
-        let file = File::new(&PathBuf::from("files/test_folder")).unwrap();
-        let abs_path = canonicalize(&PathBuf::from("files")).unwrap();
-        let file = file.absolute_path(&abs_path).unwrap();
+        let test_folder = CONFIG.folder_path.join("test_folder");
+        std::fs::create_dir_all(&test_folder).unwrap();
+
+        let file = File::new(&test_folder).unwrap();
+        let file = file.absolute_path(&CONFIG.folder_path).unwrap();
         assert_eq!(file.absolute_path, Some("test_folder".to_string()));
+
+        std::fs::remove_dir(test_folder).unwrap();
     }
 }

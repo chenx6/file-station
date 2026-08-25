@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM share WHERE path = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "f49e4b6640282ce392cd5ffddb8ba4bec38689a8f14b864026b09b6ba1df756e"
+}
