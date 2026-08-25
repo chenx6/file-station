@@ -1,17 +1,17 @@
 use std::path::PathBuf;
 
 use axum::{
+    Json,
     body::Bytes,
     extract::{Multipart, Query},
     http::StatusCode,
-    Json,
 };
 use tokio::fs::{remove_dir, remove_file, rename, write};
 
 use crate::{
-    file::{concat_path_str, is_traversal, CheckedPath, File, FileError, QueryArgs, RenameArgs},
-    user::Claim,
     CONFIG,
+    file::{CheckedPath, File, FileError, QueryArgs, RenameArgs, concat_path_str, is_traversal},
+    user::Claim,
 };
 
 /// Delete file

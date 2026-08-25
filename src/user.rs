@@ -1,16 +1,16 @@
 use std::time::SystemTime;
 
 use argon2::{
-    password_hash::{rand_core::OsRng, SaltString},
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+    password_hash::{SaltString, rand_core::OsRng},
 };
 use axum::{
-    extract::{Extension, FromRequestParts},
-    http::{header, request::Parts, StatusCode},
-    response::{IntoResponse, Response},
     Json,
+    extract::{Extension, FromRequestParts},
+    http::{StatusCode, header, request::Parts},
+    response::{IntoResponse, Response},
 };
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
